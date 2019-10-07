@@ -1,0 +1,54 @@
+
+
+wget -c https://repo.mysql.com//mysql-apt-config_0.8.13-1_all.deb && \
+dpkg -i mysql-apt-config_0.8.13-1_all.deb && \
+
+apt-get update && \
+apt-get install -y mysql-server
+
+mysql_secure_installation
+
+echo -e "\nserver-id=11" >> /etc/mysql/mysql.conf.d/mysqld.cnf
+echo 'log-bin=/var/lib/mysql/linux-bin.log' >> /etc/mysql/my.cnf && \
+echo 'auto-increment-offset = 2' >> /etc/mysql/my.cnf && \
+echo 'auto-increment-increment = 2' >> /etc/mysql/my.cnf
+
+## Create user for replication
+cat << EOF > 01-create-user.sql
+CREATE USER 'mysql-ms-replicator'@'%' IDENTIFIED BY ']w?g^}QjU5*3=DdZ';
+GRANT REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'mysql-ms-replicator';
+FLUSH PRIVILEGES;
+EOF
+
+mysql -u root -p < 01-create-user.sql
+
+mysql -u root -p -e "CREATE DATABASE company;"
+
+cat << EOF > 02-stop-master.sql
+FLUSH TABLES WITH READ LOCK;
+SET GLOBAL read_only = ON;
+SHOW MASTER STATUS;
+EOF
+
+
+linux-bin.000003        1648
+
+
+mysql -u root -p < 02-stop-master.sql
+
+mysqldump --databases company \
+    --single-transaction \
+    --compress \
+    --order-by-primary \
+    -u root \
+    -p > company.sql
+
+
+cat << EOF > 03-start-master.sql
+SET GLOBAL read_only = OFF;
+UNLOCK TABLES;
+EOF
+
+mysql -u root -p < 03-start-master.sql
+
+ => Allow the connection of slave on port 3306

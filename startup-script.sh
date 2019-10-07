@@ -28,5 +28,9 @@ echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> ${CI_FILE}
 su - ${SSH_USER} -c "umask 022 ; mkdir .ssh ; echo ${SSH_PUBLIC_KEY} >> .ssh/authorized_keys"
 
 # ==============================================================
-apt-get update -q
-apt-get install -y mysql-server
+wget -c https://repo.mysql.com//mysql-apt-config_0.8.13-1_all.deb
+dpkg -i mysql-apt-config_0.8.13-1_all.deb
+apt-get update
+
+# apt-get update -q
+# apt-get install -y mysql-server
